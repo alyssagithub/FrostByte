@@ -3008,10 +3008,8 @@ function RayfieldLibrary:CreateWindow(Settings)
 			if ToggleSettings.Flag then
 				RayfieldLibrary.Flags[ToggleSettings.Flag] = ToggleSettings
 			end
-			
-			local RequiredValue = ToggleSettings.RequiredValue
 
-			if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
+			if ToggleSettings.RequiredValue == false then
 				ToggleSettings.Name ..= " (Executor Unsupported)"
 			end
 
@@ -3058,7 +3056,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 
 			local function RunToggleCallback()
 				local Success, Response = pcall(function()
-					if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
+					if ToggleSettings.RequiredValue == false then
 						return
 					end
 
