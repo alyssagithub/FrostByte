@@ -1606,13 +1606,34 @@ function RayfieldLibrary:CreateWindow(Settings)
 		if not Settings.KeySettings.FileName then
 			Settings.KeySettings.FileName = "No file name specified"
 		end
-
-		if isfile and isfile(RayfieldFolder.."/Key System".."/"..Settings.KeySettings.FileName..ConfigurationExtension) then
-			for _, MKey in ipairs(Settings.KeySettings.Key) do
-				if string.find(readfile(RayfieldFolder.."/Key System".."/"..Settings.KeySettings.FileName..ConfigurationExtension), MKey) then
-					Passthrough = true
-				end
+		
+		local Success, Content = pcall(readfile, `{RayfieldFolder}/Key System/{Settings.KeySettings.FileName}{ConfigurationExtension}`)
+		
+		local function CopyKeyLinkToClipboard()
+			if not Settings.KeySettings.KeyWebsite then
+				return
 			end
+			
+			if not setclipboard then
+				return
+			end
+			
+			setclipboard(Settings.KeySettings.KeyWebsite)
+			Settings.KeySettings.Note ..= " (Key website link copied to clipboard)"
+		end
+		
+		if Success then
+			if Settings.KeySettings.ValidateKey(Content) then
+				Passthrough = true
+			else
+				CopyKeyLinkToClipboard()
+			end
+		else
+			CopyKeyLinkToClipboard()
+		end
+
+		if Success and Settings.KeySettings.ValidateKey(Content) then
+			Passthrough = true
 		end
 
 		if not Passthrough then
@@ -1653,6 +1674,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			KeyMain.Title.Text = Settings.KeySettings.Title or Settings.Name
 			KeyMain.Subtitle.Text = Settings.KeySettings.Subtitle or "Key System"
 			KeyMain.NoteMessage.Text = Settings.KeySettings.Note or "No instructions"
+			KeyMain.NoteMessage.TextScaled = true
 
 			KeyMain.Size = UDim2.new(0, 467, 0, 175)
 			KeyMain.BackgroundTransparency = 1
@@ -1689,7 +1711,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 				if #KeyUI.Main.Input.InputBox.Text == 0 then return end
 				local KeyFound = false
 				local FoundKey = ''
-				for _, MKey in ipairs(Settings.KeySettings.Key) do
+				--for _, MKey in ipairs(Settings.KeySettings.Key) do
 					--if string.find(KeyMain.Input.InputBox.Text, MKey) then
 					--	KeyFound = true
 					--	FoundKey = MKey
@@ -1697,11 +1719,16 @@ function RayfieldLibrary:CreateWindow(Settings)
 
 
 					-- stricter key check
-					if KeyMain.Input.InputBox.Text == MKey then
-						KeyFound = true
-						FoundKey = MKey
-					end
+					--if KeyMain.Input.InputBox.Text == MKey then
+						--KeyFound = true
+						--FoundKey = MKey
+					--end
+				--end
+				
+				if Settings.KeySettings.ValidateKey(KeyUI.Main.Input.InputBox.Text) then
+					KeyFound = true
 				end
+				
 				if KeyFound then 
 					TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {BackgroundTransparency = 1}):Play()
 					TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 467, 0, 175)}):Play()
@@ -1720,7 +1747,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 					KeyMain.Visible = false
 					if Settings.KeySettings.SaveKey then
 						if writefile then
-							writefile(RayfieldFolder.."/Key System".."/"..Settings.KeySettings.FileName..ConfigurationExtension, FoundKey)
+							writefile(RayfieldFolder.."/Key System".."/"..Settings.KeySettings.FileName..ConfigurationExtension, KeyUI.Main.Input.InputBox.Text)
 						end
 						RayfieldLibrary:Notify({Title = "Key System", Content = "The key for this script has been saved successfully.", Image = 3605522284})
 					end
@@ -3008,8 +3035,10 @@ function RayfieldLibrary:CreateWindow(Settings)
 			if ToggleSettings.Flag then
 				RayfieldLibrary.Flags[ToggleSettings.Flag] = ToggleSettings
 			end
+			
+			local RequiredValue = ToggleSettings.RequiredValue
 
-			if ToggleSettings.RequiredValue == false then
+			if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
 				ToggleSettings.Name ..= " (Executor Unsupported)"
 			end
 
@@ -3056,7 +3085,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 
 			local function RunToggleCallback()
 				local Success, Response = pcall(function()
-					if ToggleSettings.RequiredValue == false then
+					if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
 						return
 					end
 
