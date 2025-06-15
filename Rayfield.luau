@@ -30,10 +30,10 @@ local useStudio = RunService:IsStudio() or false
 
 local settingsCreated = false
 local cachedSettings
-local prompt = useStudio and require(script.Parent.prompt) or loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Sirius/refs/heads/request/prompt.lua'))()
 local request = (syn and syn.request) or (fluxus and fluxus.request) or (http and http.request) or http_request or request
-
-
+local PromptCode = game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Sirius/refs/heads/request/prompt.lua')
+PromptCode = PromptCode:gsub("task.wait%(5%)", "")
+local prompt = loadstring(PromptCode)()
 
 local function loadSettings()
 	local file = nil
@@ -1609,31 +1609,33 @@ function RayfieldLibrary:CreateWindow(Settings)
 		
 		local Success, Content = pcall(readfile, `{RayfieldFolder}/Key System/{Settings.KeySettings.FileName}{ConfigurationExtension}`)
 		
-		local function CopyKeyLinkToClipboard()
-			if not Settings.KeySettings.KeyWebsite then
-				return
-			end
-			
-			if not setclipboard then
-				return
-			end
-			
-			setclipboard(Settings.KeySettings.KeyWebsite)
-			Settings.KeySettings.Note ..= " (Key website link copied to clipboard)"
+		if not Settings.KeySettings.Note and Settings.KeySettings.KeyWebsite then
+			Settings.KeySettings.Note = `Key System Website: {Settings.KeySettings.KeyWebsite}`
+		end
+		
+		local function SendKeyPrompt()
+			prompt.create(
+				"FrostByte Key System", 
+				"This script uses a key system, would you like to copy the link for the key system to your clipboard?", 
+				"Copy Link", 
+				"Decline", 
+				function(Success)
+					if not Success then
+						return
+					end
+
+					setclipboard(Settings.KeySettings.KeyWebsite)
+				end)
 		end
 		
 		if Success then
 			if Settings.KeySettings.ValidateKey(Content) then
 				Passthrough = true
 			else
-				CopyKeyLinkToClipboard()
+				SendKeyPrompt()
 			end
 		else
-			CopyKeyLinkToClipboard()
-		end
-
-		if Success and Settings.KeySettings.ValidateKey(Content) then
-			Passthrough = true
+			SendKeyPrompt()
 		end
 
 		if not Passthrough then
