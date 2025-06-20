@@ -1610,7 +1610,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 		local Success, Content = pcall(readfile, `{RayfieldFolder}/Key System/{Settings.KeySettings.FileName}{ConfigurationExtension}`)
 		
 		if not Settings.KeySettings.Note and Settings.KeySettings.KeyWebsite then
-			Settings.KeySettings.Note = `Key System Website: {Settings.KeySettings.KeyWebsite}`
+			Settings.KeySettings.Note = `Get your key here: {Settings.KeySettings.KeyWebsite}`
 		end
 		
 		local function SendKeyPrompt()
