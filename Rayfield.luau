@@ -1615,8 +1615,8 @@ function RayfieldLibrary:CreateWindow(Settings)
 		
 		local function SendKeyPrompt()
 			prompt.create(
-				"FrostByte Key System", 
-				"This script uses a key system, would you like to copy the link for the key system to your clipboard?", 
+				"Key System Notice", 
+				"This script requires you to obtain a key by watching ads on a website, would you like to copy that website's link to your clipboard?", 
 				"Copy Link", 
 				"Decline", 
 				function(Success)
