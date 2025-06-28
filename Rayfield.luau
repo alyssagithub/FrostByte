@@ -1872,7 +1872,9 @@ function RayfieldLibrary:CreateWindow(Settings)
 					--end
 				--end
 				
-				if Settings.KeySettings.ValidateKey(KeyUI.Main.Input.InputBox.Text) then
+				local Success, FailReason = Settings.KeySettings.ValidateKey(KeyUI.Main.Input.InputBox.Text)
+				
+				if Success then
 					KeyFound = true
 				end
 				
@@ -1913,9 +1915,11 @@ function RayfieldLibrary:CreateWindow(Settings)
 						TweenService:Create(KeyMain.NoteMessage, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
 						TweenService:Create(KeyMain.Hide, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {ImageTransparency = 1}):Play()
 						task.wait(0.45)
-						Players.LocalPlayer:Kick("Failed too many key attempts")
+						--Players.LocalPlayer:Kick("Failed too many key attempts")
 						--game:Shutdown()
 					end
+					print("[Rayfield]: Key failed for reason:", FailReason)
+					KeyMain.Input.InputBox.PlaceholderText = FailReason
 					KeyMain.Input.InputBox.Text = ""
 					AttemptsRemaining = AttemptsRemaining - 1
 					TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 467, 0, 175)}):Play()
