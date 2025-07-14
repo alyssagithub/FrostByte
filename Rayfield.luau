@@ -32,6 +32,9 @@ local settingsCreated = false
 local cachedSettings
 local request = (syn and syn.request) or (fluxus and fluxus.request) or (http and http.request) or http_request or request
 
+local RayfieldIdentifier = math.random()
+shared.RayfieldIdentifier = RayfieldIdentifier
+
 local function GetPromptLibrary()
 	local promptRet = {}
 
@@ -1788,10 +1791,6 @@ function RayfieldLibrary:CreateWindow(Settings)
 		
 		local Success, Content = pcall(readfile, `{RayfieldFolder}/Key System/{Settings.KeySettings.FileName}{ConfigurationExtension}`)
 		
-		if not Settings.KeySettings.Note and Settings.KeySettings.KeyWebsite then
-			Settings.KeySettings.Note = `Get your key here: {Settings.KeySettings.KeyWebsite}`
-		end
-		
 		local function SendKeyPrompt()
 			prompt.create(
 				"Key System Notice", 
@@ -1818,7 +1817,6 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 
 		if not Passthrough then
-			local AttemptsRemaining = math.random(2, 5)
 			Rayfield.Enabled = false
 			
 			local KeyUI = useStudio and script.Parent:FindFirstChild('Key') or game:GetObjects("rbxassetid://11380036235")[1]
@@ -1935,27 +1933,9 @@ function RayfieldLibrary:CreateWindow(Settings)
 						RayfieldLibrary:Notify({Title = "Key System", Content = "The key for this script has been saved successfully.", Image = 3605522284})
 					end
 				else
-					if AttemptsRemaining == 0 then
-						TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {BackgroundTransparency = 1}):Play()
-						TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 467, 0, 175)}):Play()
-						TweenService:Create(KeyMain.Shadow.Image, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {ImageTransparency = 1}):Play()
-						TweenService:Create(KeyMain.Title, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.Subtitle, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.KeyNote, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.Input, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {BackgroundTransparency = 1}):Play()
-						TweenService:Create(KeyMain.Input.UIStroke, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {Transparency = 1}):Play()
-						TweenService:Create(KeyMain.Input.InputBox, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.NoteTitle, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.NoteMessage, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
-						TweenService:Create(KeyMain.Hide, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {ImageTransparency = 1}):Play()
-						task.wait(0.45)
-						--Players.LocalPlayer:Kick("Failed too many key attempts")
-						--game:Shutdown()
-					end
 					print("[Rayfield]: Key failed for reason:", FailReason)
 					KeyMain.Input.InputBox.PlaceholderText = FailReason
 					KeyMain.Input.InputBox.Text = ""
-					AttemptsRemaining = AttemptsRemaining - 1
 					TweenService:Create(KeyMain, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 467, 0, 175)}):Play()
 					TweenService:Create(KeyMain, TweenInfo.new(0.4, Enum.EasingStyle.Elastic), {Position = UDim2.new(0.495,0,0.5,0)}):Play()
 					task.wait(0.1)
@@ -3221,6 +3201,10 @@ function RayfieldLibrary:CreateWindow(Settings)
 				RayfieldLibrary.Flags[ToggleSettings.Flag] = ToggleSettings
 			end
 			
+			if ToggleSettings.Locked then
+				ToggleSettings.Name ..= " (UNAVAILABLE)"
+			end
+			
 			local RequiredValue = ToggleSettings.RequiredValue
 
 			if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
@@ -3285,7 +3269,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 					if ToggleSettings.Looped then
 						RunCallbackFunction("BeforeLoop")
 
-						while ToggleSettings.CurrentValue and task.wait() do
+						while ToggleSettings.CurrentValue and shared.RayfieldIdentifier == RayfieldIdentifier and task.wait() do
 							RunCallbackFunction("Callback")
 						end
 
@@ -3309,6 +3293,10 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end
 
 			Toggle.Interact.MouseButton1Click:Connect(function()
+				if ToggleSettings.Locked then
+					return
+				end
+				
 				if ToggleSettings.CurrentValue == true then
 					ToggleSettings.CurrentValue = false
 					TweenService:Create(Toggle, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.ElementBackgroundHover}):Play()
