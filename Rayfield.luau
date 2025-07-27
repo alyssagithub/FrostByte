@@ -214,9 +214,6 @@ local function loadSettings()
 			end
 
 			-- for debug in studio
-			if useStudio then
-				file = '{"General":{"rayfieldOpen":{"Value":"K","Type":"bind","Name":"Rayfield Keybind","Element":{"HoldToInteract":false,"Ext":true,"Name":"Rayfield Keybind","Set":null,"CallOnChange":true,"Callback":null,"CurrentKeybind":"K"}}},"System":{"usageAnalytics":{"Value":false,"Type":"toggle","Name":"Anonymised Analytics","Element":{"Ext":true,"Name":"Anonymised Analytics","Set":null,"CurrentValue":false,"Callback":null}}}}'
-			end
 
 
 			if file then
@@ -722,15 +719,17 @@ end
 if gethui then
 	for _, Interface in ipairs(gethui():GetChildren()) do
 		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			Interface.Enabled = false
-			Interface.Name = "Rayfield-Old"
+			--Interface.Enabled = false
+			--Interface.Name = "Rayfield-Old"
+			Interface:Destroy()
 		end
 	end
 elseif not useStudio then
 	for _, Interface in ipairs(CoreGui:GetChildren()) do
 		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			Interface.Enabled = false
-			Interface.Name = "Rayfield-Old"
+			--Interface.Enabled = false
+			--Interface.Name = "Rayfield-Old"
+			Interface:Destroy()
 		end
 	end
 end
@@ -1603,12 +1602,6 @@ function RayfieldLibrary:CreateWindow(Settings)
 	end
 
 	if getgenv then getgenv().rayfieldCached = true end
-	
-	if not correctBuild and not Settings.DisableBuildWarnings then
-		task.delay(3, function() 
-			RayfieldLibrary:Notify({Title = 'Build Mismatch', Content = 'Rayfield may encounter issues as you are running an incompatible interface version ('.. ((Rayfield:FindFirstChild('Build') and Rayfield.Build.Value) or 'No Build') ..').\n\nThis version of Rayfield is intended for interface build '..InterfaceBuild..'.\n\nTry rejoining and then run the script twice.', Image = 4335487866, Duration = 15})		
-		end)
-	end
 
 	local Success, Result = pcall(isfolder, RayfieldFolder)
 
@@ -2862,6 +2855,10 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end
 
 			local function SetDropdownOptions()
+				if DropdownSettings.MultipleOptions then
+					table.sort(DropdownSettings.Options)
+				end
+				
 				for _, Option in ipairs(DropdownSettings.Options) do
 					local DropdownOption = Elements.Template.Dropdown.List.Template:Clone()
 					DropdownOption.Name = Option
