@@ -35,8 +35,8 @@ local Success, Result = pcall(Function)
 
 if not Success then
 	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "FrostByte Error",
-		Text = `Errored while loading: {Result}`,
+		Title = "FrostByte Load Error",
+		Text = `Report this in our Discord: {Result}`,
 		Duration = 10
 	})
 end
