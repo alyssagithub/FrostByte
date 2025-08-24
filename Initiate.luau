@@ -39,4 +39,5 @@ if not Success then
 		Text = `Report this in our Discord: {Result}`,
 		Duration = 10
 	})
+	task.spawn(error, Result)
 end
