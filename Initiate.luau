@@ -26,7 +26,7 @@ if not Function then
 end
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-	Title = "FrostByte Notification",
+	Title = "FrostByte (discord.gg/sS3tDP6FSB)",
 	Text = NotificationMessage or "Game found, loading script...",
 	Duration = 10
 })
@@ -36,7 +36,7 @@ local Success, Result = pcall(Function)
 if not Success then
 	game:GetService("StarterGui"):SetCore("SendNotification", {
 		Title = "FrostByte Load Error",
-		Text = `Report this in our Discord: {Result}`,
+		Text = `Report this in discord.gg/sS3tDP6FSB: {Result}`,
 		Duration = 10
 	})
 	task.spawn(error, Result)
