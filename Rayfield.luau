@@ -716,19 +716,17 @@ elseif not useStudio then
 	Rayfield.Parent = CoreGui
 end
 
+Rayfield:SetAttribute("UUID", math.random())
+
 if gethui then
 	for _, Interface in ipairs(gethui():GetChildren()) do
 		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			--Interface.Enabled = false
-			--Interface.Name = "Rayfield-Old"
 			Interface:Destroy()
 		end
 	end
 elseif not useStudio then
 	for _, Interface in ipairs(CoreGui:GetChildren()) do
 		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			--Interface.Enabled = false
-			--Interface.Name = "Rayfield-Old"
 			Interface:Destroy()
 		end
 	end
@@ -1535,62 +1533,19 @@ local function createSettings(window)
 		return
 	end
 
-	local newTab = window:CreateTab('Rayfield Settings', 0, true)
+	local Tab = window:CreateTab('Dashboard', 0, true)
+	
+	shared.DashboardTab = Tab
 
-	if TabList['Rayfield Settings'] then
-		TabList['Rayfield Settings'].LayoutOrder = 1000
+	if TabList['Dashboard'] then
+		TabList['Dashboard'].LayoutOrder = 1000
 	end
 
-	if Elements['Rayfield Settings'] then
-		Elements['Rayfield Settings'].LayoutOrder = 1000
-	end
-
-	-- Create sections and elements
-	for categoryName, settingCategory in pairs(settingsTable) do
-		newTab:CreateSection(categoryName)
-
-		for _, setting in pairs(settingCategory) do
-			if setting.Type == 'input' then
-				setting.Element = newTab:CreateInput({
-					Name = setting.Name,
-					CurrentValue = setting.Value,
-					PlaceholderText = setting.Placeholder,
-					Ext = true,
-					RemoveTextAfterFocusLost = setting.ClearOnFocus,
-					Callback = function(Value)
-						setting.Value = Value
-						updateSettings()
-					end,
-				})
-			elseif setting.Type == 'toggle' then
-				setting.Element = newTab:CreateToggle({
-					Name = setting.Name,
-					CurrentValue = setting.Value,
-					Ext = true,
-					Callback = function(Value)
-						setting.Value = Value
-						updateSettings()
-					end,
-				})
-			elseif setting.Type == 'bind' then
-				setting.Element = newTab:CreateKeybind({
-					Name = setting.Name,
-					CurrentKeybind = setting.Value,
-					HoldToInteract = false,
-					Ext = true,
-					CallOnChange = true,
-					Callback = function(Value)
-						setting.Value = Value
-						updateSettings()
-					end,
-				})
-			end
-		end
+	if Elements['Dashboard'] then
+		Elements['Dashboard'].LayoutOrder = 1000
 	end
 
 	settingsCreated = true
-	loadSettings()
-	updateSettings()
 end
 
 function RayfieldLibrary:CreateWindow(Settings)
@@ -1830,15 +1785,13 @@ function RayfieldLibrary:CreateWindow(Settings)
 			if gethui then
 				for _, Interface in ipairs(gethui():GetChildren()) do
 					if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
-						Interface.Enabled = false
-						Interface.Name = "KeyUI-Old"
+						Interface:Destroy()
 					end
 				end
 			elseif not useStudio then
 				for _, Interface in ipairs(CoreGui:GetChildren()) do
 					if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
-						Interface.Enabled = false
-						Interface.Name = "KeyUI-Old"
+						Interface:Destroy()
 					end
 				end
 			end
@@ -1883,19 +1836,6 @@ function RayfieldLibrary:CreateWindow(Settings)
 				if #KeyUI.Main.Input.InputBox.Text == 0 then return end
 				local KeyFound = false
 				local FoundKey = ''
-				--for _, MKey in ipairs(Settings.KeySettings.Key) do
-					--if string.find(KeyMain.Input.InputBox.Text, MKey) then
-					--	KeyFound = true
-					--	FoundKey = MKey
-					--end
-
-
-					-- stricter key check
-					--if KeyMain.Input.InputBox.Text == MKey then
-						--KeyFound = true
-						--FoundKey = MKey
-					--end
-				--end
 				
 				local Success, FailReason = Settings.KeySettings.ValidateKey(KeyUI.Main.Input.InputBox.Text)
 				
@@ -1925,6 +1865,8 @@ function RayfieldLibrary:CreateWindow(Settings)
 						end
 						RayfieldLibrary:Notify({Title = "Key System", Content = "The key for this script has been saved successfully.", Image = 3605522284})
 					end
+					
+					KeyUI:Destroy()
 				else
 					print("[Rayfield]: Key failed for reason:", FailReason)
 					KeyMain.Input.InputBox.PlaceholderText = FailReason
@@ -1986,7 +1928,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 	TabList.Template.Visible = false
 
 	-- Tab
-	local FirstTab = false
+	local FirstTab = true
 	local Window = {}
 	function Window:CreateTab(Name, Image, Ext)
 		local SDone = false
@@ -2077,8 +2019,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			TweenService:Create(TabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0}):Play()
 		end
 
-
-		TabButton.Interact.MouseButton1Click:Connect(function()
+		local function SwitchToTab()
 			if Minimised then return end
 			TweenService:Create(TabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0}):Play()
 			TweenService:Create(TabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 1}):Play()
@@ -2103,9 +2044,15 @@ function RayfieldLibrary:CreateWindow(Settings)
 			if Elements.UIPageLayout.CurrentPage ~= TabPage then
 				Elements.UIPageLayout:JumpTo(TabPage)
 			end
-		end)
+		end
+
+		TabButton.Interact.MouseButton1Click:Connect(SwitchToTab)
 
 		local Tab = {}
+		
+		function Tab:Switch()
+			SwitchToTab()
+		end
 
 		-- Button
 		function Tab:CreateButton(ButtonSettings)
@@ -2427,7 +2374,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 
 		-- Section
-		function Tab:CreateSection(SectionName)
+		function Tab:CreateSection(SectionName, SectionSettings)
 
 			local SectionValue = {}
 
@@ -2437,8 +2384,13 @@ function RayfieldLibrary:CreateWindow(Settings)
 				SectionSpace.Parent = TabPage
 			end
 
-			local Section = Elements.Template.SectionTitle:Clone()
+			local Section: TextLabel = Elements.Template.SectionTitle:Clone()
 			Section.Title.Text = SectionName
+			
+			if SectionSettings and SectionSettings.Center then
+				Section.Title.TextXAlignment = Enum.TextXAlignment.Center
+			end
+			
 			Section.Visible = true
 			Section.Parent = TabPage
 
@@ -2833,8 +2785,12 @@ function RayfieldLibrary:CreateWindow(Settings)
 					if DropdownSettings.CurrentOption[1] == "" then
 						return
 					end
-
-					DropdownSettings.Callback(DropdownSettings.CurrentOption)
+					
+					if DropdownSettings.SendString then
+						DropdownSettings.Callback(DropdownSettings.CurrentOption[1])
+					else
+						DropdownSettings.Callback(DropdownSettings.CurrentOption)
+					end
 
 					if DropdownSettings.ResetAfterCallback then
 						DropdownSettings:Set({""})
@@ -3722,30 +3678,43 @@ Topbar.Search.MouseButton1Click:Connect(function()
 end)
 
 if Topbar:FindFirstChild('Settings') then
-	Topbar.Settings.MouseButton1Click:Connect(function()
-		task.spawn(function()
-			for _, OtherTabButton in ipairs(TabList:GetChildren()) do
-				if OtherTabButton.Name ~= "Template" and OtherTabButton.ClassName == "Frame" and OtherTabButton ~= TabButton and OtherTabButton.Name ~= "Placeholder" then
-					TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.TabBackground}):Play()
-					TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextColor3 = SelectedTheme.TabTextColor}):Play()
-					TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageColor3 = SelectedTheme.TabTextColor}):Play()
-					TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0.7}):Play()
-					TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0.2}):Play()
-					TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageTransparency = 0.2}):Play()
-					TweenService:Create(OtherTabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 0.5}):Play()
-				end
+	local function Jump()
+		for _, OtherTabButton in ipairs(TabList:GetChildren()) do
+			if OtherTabButton.Name ~= "Template" and OtherTabButton.ClassName == "Frame" and OtherTabButton ~= TabButton and OtherTabButton.Name ~= "Placeholder" then
+				TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.TabBackground}):Play()
+				TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextColor3 = SelectedTheme.TabTextColor}):Play()
+				TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageColor3 = SelectedTheme.TabTextColor}):Play()
+				TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0.7}):Play()
+				TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0.2}):Play()
+				TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageTransparency = 0.2}):Play()
+				TweenService:Create(OtherTabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 0.5}):Play()
 			end
+		end
 
-			Elements.UIPageLayout:JumpTo(Elements['Rayfield Settings'])
-		end)
+		Elements.UIPageLayout:JumpTo(Elements['Dashboard'])
+	end
+	
+	local Settings: ImageLabel = Topbar.Settings
+	
+	Settings.MouseButton1Click:Connect(Jump)
+	
+	task.spawn(function()
+		repeat
+			task.wait()
+		until settingsCreated
+		
+		Jump()
 	end)
-
 end
 
 
 Topbar.Hide.MouseButton1Click:Connect(function()
 	setVisibility(Hidden, not useMobileSizing)
 end)
+
+if shared.HideHotkeyConnection then
+	shared.HideHotkeyConnection:Disconnect()
+end
 
 hideHotkeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
 	if (input.KeyCode == Enum.KeyCode[settingsTable.General.rayfieldOpen.Value or 'K'] and not processed) then
