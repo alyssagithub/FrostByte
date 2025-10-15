@@ -36,7 +36,7 @@ local Success, Result = pcall(Function)
 if not Success then
 	game:GetService("StarterGui"):SetCore("SendNotification", {
 		Title = "FrostByte Load Error",
-		Text = `Report this in discord.gg/sS3tDP6FSB: {Result}`,
+		Text = Result,
 		Duration = 10
 	})
 	task.spawn(error, Result)
