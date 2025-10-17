@@ -1,9 +1,59 @@
-local function getService(name)
-	local service = game:GetService(name)
-	return if cloneref then cloneref(service) else service
+local function SafeCloneRef(Object)
+	if typeof(Object) ~= 'Instance' then
+		warn('[Debug] Non-instance passed:', typeof(Object), tostring(Object));
+
+		return Object;
+	end
+
+	if not getfenv().cloneref then return Object end;
+
+	local Success, Result = pcall(function()
+
+		return getfenv().cloneref(Object);
+	end)
+
+	if not Success then
+		warn('[Debug] cloneref failed for:', Object:GetFullName(), '| Error:', Result);
+
+		return Object;
+	end
+
+	if typeof(Result) ~= 'Instance' then
+		warn('[Debug] cloneref returned non-instance for:', Object:GetFullName(), '| Result:', typeof(Result));
+
+		return Object;
+	end
+
+	return Result;
 end
 
-local requestsDisabled = getgenv and getgenv().DISABLE_RAYFIELD_REQUESTS
+local function getService(Name)
+	local Service;
+	local Success, Error = pcall(function()
+
+		Service = game:GetService(Name);
+	end)
+
+	if not Success or not Service then
+		warn('[Debug] Failed to get service:', Name, '| Error:', Error or 'Unknown');
+
+		return nil;
+	end
+
+	local Cloned = SafeCloneRef(Service);
+
+	if Cloned ~= Service then
+
+		print('[Debug] Successfully cloned service:', Name);
+	else
+
+		print('[Debug] Returned original service:', Name);
+	end
+
+	return Cloned;
+end
+
+local requestsDisabled = shared.DISABLE_RAYFIELD_REQUESTS
 local InterfaceBuild = '3K3W'
 local Release = "Build 1.672"
 local RayfieldFolder = "Rayfield"
@@ -30,10 +80,24 @@ local useStudio = RunService:IsStudio() or false
 
 local settingsCreated = false
 local cachedSettings
-local request = (syn and syn.request) or (fluxus and fluxus.request) or (http and http.request) or http_request or request
+local request = getfenv().request
 
 local RayfieldIdentifier = math.random()
 shared.RayfieldIdentifier = RayfieldIdentifier
+
+local function GetUIParentObject()
+	local CoreGui = game:GetService('CoreGui')
+	
+	local gethui = getfenv().gethui
+	
+	if gethui then
+		return gethui()
+	elseif not useStudio and CoreGui:FindFirstChild("RobloxGui") then
+		return CoreGui:FindFirstChild("RobloxGui")
+	elseif not useStudio then
+		return CoreGui
+	end
+end
 
 local function GetPromptLibrary()
 	local promptRet = {}
@@ -120,32 +184,13 @@ local function GetPromptLibrary()
 		local prompt = useStudio and script.Parent:FindFirstChild('Prompt') or game:GetObjects("rbxassetid://97206084643256")[1]
 
 		prompt.Enabled = false
-
-		if gethui then
-			prompt.Parent = gethui()
-		elseif syn and syn.protect_gui then 
-			syn.protect_gui(prompt)
-			prompt.Parent = coreGui
-		elseif not useStudio and coreGui:FindFirstChild("RobloxGui") then
-			prompt.Parent = coreGui:FindFirstChild("RobloxGui")
-		elseif not useStudio then
-			prompt.Parent = coreGui
-		end
+		
+		prompt.Parent = GetUIParentObject()
 
 		-- Disable other instances of the prompt
-		if gethui then
-			for _, Interface in ipairs(gethui():GetChildren()) do
-				if Interface.Name == prompt.Name and Interface ~= prompt then
-					Interface.Enabled = false
-					Interface.Name = "Prompt-Old"
-				end
-			end
-		elseif not useStudio then
-			for _, Interface in ipairs(coreGui:GetChildren()) do
-				if Interface.Name == prompt.Name and Interface ~= prompt then
-					Interface.Enabled = false
-					Interface.Name = "Prompt-Old"
-				end
+		for _, Interface in ipairs(GetUIParentObject:GetChildren()) do
+			if Interface.Name == prompt.Name and Interface ~= prompt then
+				Interface:Destroy()
 			end
 		end
 
@@ -202,6 +247,12 @@ end
 
 local prompt = GetPromptLibrary()
 
+local isfolder = getfenv().isfolder
+local isfile = getfenv().isfile
+local readfile = getfenv().readfile
+local writefile = getfenv().writefile
+local makefolder = getfenv().makefolder
+
 local function loadSettings()
 	local file = nil
 
@@ -255,19 +306,7 @@ local function loadSettings()
 	end
 end
 
-if debugX then
-	warn('Now Loading Settings Configuration')
-end
-
 loadSettings()
-
-if debugX then
-	warn('Settings Loaded')
-end
-
-if debugX then
-	warn('Moving on to continue initialisation')
-end
 
 local RayfieldLibrary = {
 	Flags = {},
@@ -705,30 +744,13 @@ until buildAttempts >= 2
 
 Rayfield.Enabled = false
 
-if gethui then
-	Rayfield.Parent = gethui()
-elseif syn and syn.protect_gui then 
-	syn.protect_gui(Rayfield)
-	Rayfield.Parent = CoreGui
-elseif not useStudio and CoreGui:FindFirstChild("RobloxGui") then
-	Rayfield.Parent = CoreGui:FindFirstChild("RobloxGui")
-elseif not useStudio then
-	Rayfield.Parent = CoreGui
-end
+Rayfield.Parent = GetUIParentObject()
 
 Rayfield:SetAttribute("UUID", math.random())
 
-if gethui then
-	for _, Interface in ipairs(gethui():GetChildren()) do
-		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			Interface:Destroy()
-		end
-	end
-elseif not useStudio then
-	for _, Interface in ipairs(CoreGui:GetChildren()) do
-		if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-			Interface:Destroy()
-		end
+for _, Interface in GetUIParentObject:GetChildren() do
+	if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
+		Interface:Destroy()
 	end
 end
 
@@ -993,10 +1015,6 @@ end
 local function SaveConfiguration()
 	if not CEnabled or not globalLoaded then return end
 
-	if debugX then
-		print('Saving')
-	end
-
 	local Data = {}
 	for i, v in pairs(RayfieldLibrary.Flags) do
 		if typeof(v) ~= "table" then
@@ -1033,10 +1051,6 @@ local function SaveConfiguration()
 		TextBox.Position = UDim2.new(0.5, 0, 0, 30)
 		TextBox.Text = HttpService:JSONEncode(Data)
 		TextBox.ClearTextOnFocus = false
-	end
-
-	if debugX then
-		warn(HttpService:JSONEncode(Data))
 	end
 
 	if writefile then
@@ -1550,13 +1564,13 @@ end
 
 function RayfieldLibrary:CreateWindow(Settings)
 	if Rayfield:FindFirstChild('Loading') then
-		if getgenv and not getgenv().rayfieldCached then
+		if shared.rayfieldCached then
 			Rayfield.Enabled = true
 			Rayfield.Loading.Visible = false
 		end
 	end
 
-	if getgenv then getgenv().rayfieldCached = true end
+	shared.rayfieldCached = true
 
 	local Success, Result = pcall(isfolder, RayfieldFolder)
 
@@ -1750,7 +1764,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 						return
 					end
 
-					setclipboard(Settings.KeySettings.KeyWebsite)
+					getfenv().setclipboard(Settings.KeySettings.KeyWebsite)
 				end)
 		end
 		
@@ -1770,29 +1784,12 @@ function RayfieldLibrary:CreateWindow(Settings)
 			local KeyUI = useStudio and script.Parent:FindFirstChild('Key') or game:GetObjects("rbxassetid://11380036235")[1]
 			
 			KeyUI.Enabled = true
+			
+			KeyUI.Parent = GetUIParentObject()
 
-			if gethui then
-				KeyUI.Parent = gethui()
-			elseif syn and syn.protect_gui then 
-				syn.protect_gui(KeyUI)
-				KeyUI.Parent = CoreGui
-			elseif not useStudio and CoreGui:FindFirstChild("RobloxGui") then
-				KeyUI.Parent = CoreGui:FindFirstChild("RobloxGui")
-			elseif not useStudio then
-				KeyUI.Parent = CoreGui
-			end
-
-			if gethui then
-				for _, Interface in ipairs(gethui():GetChildren()) do
-					if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
-						Interface:Destroy()
-					end
-				end
-			elseif not useStudio then
-				for _, Interface in ipairs(CoreGui:GetChildren()) do
-					if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
-						Interface:Destroy()
-					end
+			for _, Interface in GetUIParentObject:GetChildren() do
+				if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
+					Interface:Destroy()
 				end
 			end
 
@@ -2816,6 +2813,9 @@ function RayfieldLibrary:CreateWindow(Settings)
 				end
 				
 				for _, Option in ipairs(DropdownSettings.Options) do
+					local Option = tostring(Option)
+					
+					
 					local DropdownOption = Elements.Template.Dropdown.List.Template:Clone()
 					DropdownOption.Name = Option
 					DropdownOption.Title.Text = Option
@@ -3677,21 +3677,9 @@ Topbar.Search.MouseButton1Click:Connect(function()
 	end)
 end)
 
-if Topbar:FindFirstChild('Settings') then
+if shared.DashboardTab then
 	local function Jump()
-		for _, OtherTabButton in ipairs(TabList:GetChildren()) do
-			if OtherTabButton.Name ~= "Template" and OtherTabButton.ClassName == "Frame" and OtherTabButton ~= TabButton and OtherTabButton.Name ~= "Placeholder" then
-				TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.TabBackground}):Play()
-				TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextColor3 = SelectedTheme.TabTextColor}):Play()
-				TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageColor3 = SelectedTheme.TabTextColor}):Play()
-				TweenService:Create(OtherTabButton, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0.7}):Play()
-				TweenService:Create(OtherTabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0.2}):Play()
-				TweenService:Create(OtherTabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageTransparency = 0.2}):Play()
-				TweenService:Create(OtherTabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 0.5}):Play()
-			end
-		end
-
-		Elements.UIPageLayout:JumpTo(Elements['Dashboard'])
+		shared.DashboardTab:Switch()
 	end
 	
 	local Settings: ImageLabel = Topbar.Settings
@@ -3701,7 +3689,7 @@ if Topbar:FindFirstChild('Settings') then
 	task.spawn(function()
 		repeat
 			task.wait()
-		until settingsCreated
+		until shared.DashboardTab
 		
 		Jump()
 	end)
@@ -3754,10 +3742,6 @@ end
 
 function RayfieldLibrary:LoadConfiguration()
 	local config
-
-	if debugX then
-		warn('Loading Configuration')
-	end
 
 	if useStudio then
 		config = '{"Toggle1adwawd":true,"ColorPicker1awd":{"B":255,"G":255,"R":255},"Slider1dawd":100,"ColorPicfsefker1":{"B":255,"G":255,"R":255},"Slidefefsr1":80,"dawdawd":"","Input1":"hh","Keybind1":"B","Dropdown1":["Ocean"]}'
