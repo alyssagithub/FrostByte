@@ -762,6 +762,8 @@ if Rayfield.AbsoluteSize.X < minSize.X and Rayfield.AbsoluteSize.Y < minSize.Y t
 	useMobileSizing = true
 end
 
+local useMobilePrompt
+
 if UserInputService.TouchEnabled then
 	useMobilePrompt = true
 end
@@ -789,7 +791,7 @@ LoadingFrame.Version.Text = Release
 
 -- Variables
 
-local CFileName = nil
+local CFileName: string = nil
 local CEnabled = false
 local Minimised = false
 local Hidden = false
@@ -799,7 +801,7 @@ local Notifications = Rayfield.Notifications
 
 local SelectedTheme = RayfieldLibrary.Theme.Default
 
-local function ChangeTheme(Theme)
+local function ChangeTheme(Theme: string | {[string]: Color3})
 	if typeof(Theme) == 'string' then
 		SelectedTheme = RayfieldLibrary.Theme[Theme]
 	elseif typeof(Theme) == 'table' then
@@ -845,19 +847,11 @@ local function ChangeTheme(Theme)
 	end
 end
 
-local Icons
+local IconsCode = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/refs/heads/main/icons.lua'))
 
-repeat
-	Icons = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/refs/heads/main/icons.lua'))
+assert(IconsCode, "Rayfield | Failed to get icons, try again.")
 
-	task.wait()
-
-	if not Icons then
-		warn("[Rayfield]: Failed to load icons, retrying...")
-	end
-until Icons
-
-Icons = Icons()
+local Icons = IconsCode()
 
 local function getIcon(name : string)
 	name = string.match(string.lower(name), "^%s*(.*)%s*$") :: string
@@ -895,7 +889,7 @@ local function getIcon(name : string)
 	return asset
 end
 
-local function makeDraggable(object, dragObject, enableTaptic, tapticOffset)
+local function makeDraggable(object: GuiObject, dragObject, enableTaptic, tapticOffset)
 	local dragging = false
 	local relative = nil
 
@@ -973,7 +967,7 @@ local function makeDraggable(object, dragObject, enableTaptic, tapticOffset)
 	end)
 end
 
-local function PackColor(Color)
+local function PackColor(Color: Color3)
 	return {R = Color.R * 255, G = Color.G * 255, B = Color.B * 255}
 end    
 
@@ -988,8 +982,8 @@ local function LoadConfiguration(Configuration)
 	if not success then warn('Rayfield had an issue decoding the configuration file, please try delete the file and reopen Rayfield.') return end
 
 	-- Iterate through current UI elements' flags
-	for FlagName, Flag in pairs(RayfieldLibrary.Flags) do
-		local FlagValue = Data[FlagName]
+	for FlagName: string, Flag in pairs(RayfieldLibrary.Flags) do
+		local FlagValue: boolean & Color3 & {any} = Data[FlagName]
 
 		if (typeof(FlagValue) == 'boolean' and FlagValue == false) or FlagValue then
 			task.spawn(function()
@@ -1016,7 +1010,7 @@ end
 local function SaveConfiguration()
 	if not CEnabled or not globalLoaded then return end
 
-	local Data = {}
+	local Data: {[any]: any} = {}
 	for i, v in pairs(RayfieldLibrary.Flags) do
 		if typeof(v) ~= "table" then
 			warn(`[Rayfield]: Flag '{i}' is not a table, current type is '{typeof(v)}', it is being removed.`)
@@ -1059,7 +1053,7 @@ local function SaveConfiguration()
 	end
 end
 
-function RayfieldLibrary:Notify(data) -- action e.g open messages
+function RayfieldLibrary:Notify(data: {[string]: any}) -- action e.g open messages
 	task.spawn(function()
 
 		-- Notification Object Creation
@@ -1108,11 +1102,6 @@ function RayfieldLibrary:Notify(data) -- action e.g open messages
 
 		newNotification.Visible = true
 
-		if data.Actions then
-			warn('Rayfield | Not seeing your actions in notifications?')
-			print("Notification Actions are being sunset for now, keep up to date on when they're back in the discord. (sirius.menu/discord)")
-		end
-
 		-- Calculate textbounds and set initial values
 		local bounds = {newNotification.Title.TextBounds.Y, newNotification.Description.TextBounds.Y}
 		newNotification.Size = UDim2.new(1, -60, 0, -Notifications:FindFirstChild("UIListLayout").Padding.Offset)
@@ -1135,7 +1124,7 @@ function RayfieldLibrary:Notify(data) -- action e.g open messages
 		TweenService:Create(newNotification.UIStroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {Transparency = 0.95}):Play()
 		TweenService:Create(newNotification.Shadow, TweenInfo.new(0.3, Enum.EasingStyle.Exponential), {ImageTransparency = 0.82}):Play()
 
-		local waitDuration = math.min(math.max((#newNotification.Description.Text * 0.1) + 2.5, 3), 10)
+		local waitDuration = math.clamp(#newNotification.Description.Text * 0.1 + 2.5, 3, 10)
 		task.wait(data.Duration or waitDuration)
 
 		if not newNotification.Parent or not Notifications:FindFirstChild("UIListLayout") then
@@ -1563,7 +1552,7 @@ local function createSettings(window)
 	settingsCreated = true
 end
 
-function RayfieldLibrary:CreateWindow(Settings)
+function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 	if Rayfield:FindFirstChild('Loading') then
 		if shared.rayfieldCached then
 			Rayfield.Enabled = true
@@ -1626,9 +1615,9 @@ function RayfieldLibrary:CreateWindow(Settings)
 	end
 
 	if Settings.Theme then
-		local success, result = pcall(ChangeTheme, Settings.Theme)
+		local success, result: any = pcall(ChangeTheme, Settings.Theme)
 		if not success then
-			local success, result2 = pcall(ChangeTheme, 'Default')
+			local success, result2: any = pcall(ChangeTheme, 'Default')
 			if not success then
 				warn('CRITICAL ERROR - NO DEFAULT THEME')
 				print(result2)
@@ -2087,7 +2076,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 					TweenService:Create(Button.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Transparency = 0}):Play()
 				else
 					if not ButtonSettings.Ext then
-						SaveConfiguration(ButtonSettings.Name..'\n')
+						SaveConfiguration()
 					end
 					TweenService:Create(Button, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.ElementBackgroundHover}):Play()
 					TweenService:Create(Button.ElementIndicator, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {TextTransparency = 1}):Play()
@@ -2118,7 +2107,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 
 		-- ColorPicker
-		function Tab:CreateColorPicker(ColorPickerSettings) -- by Throit
+		function Tab:CreateColorPicker(ColorPickerSettings: {[any]: any}) -- by Throit
 			ColorPickerSettings.Type = "ColorPicker"
 			local ColorPicker = Elements.Template.ColorPicker:Clone()
 			local Background = ColorPicker.CPBackground
@@ -2254,12 +2243,17 @@ function RayfieldLibrary:CreateWindow(Settings)
 				local r,g,b = math.floor((h*255)+0.5),math.floor((s*255)+0.5),math.floor((v*255)+0.5)
 				ColorPickerSettings.Color = Color3.fromRGB(r,g,b)
 				if not ColorPickerSettings.Ext then
-					SaveConfiguration(ColorPickerSettings.Flag..'\n'..tostring(ColorPickerSettings.Color))
+					SaveConfiguration()
 				end
 			end)
 			--RGB
 			local function rgbBoxes(box,toChange)
-				local value = tonumber(box.Text) 
+				local value = tonumber(box.Text)
+				
+				if not value then
+					return
+				end
+				
 				local color = Color3.fromHSV(h,s,v) 
 				local oldR,oldG,oldB = math.floor((color.R*255)+0.5),math.floor((color.G*255)+0.5),math.floor((color.B*255)+0.5)
 				local save 
@@ -2382,7 +2376,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 				SectionSpace.Parent = TabPage
 			end
 
-			local Section: TextLabel = Elements.Template.SectionTitle:Clone()
+			local Section: TextLabel & any = Elements.Template.SectionTitle:Clone()
 			Section.Title.Text = SectionName
 			
 			if SectionSettings and SectionSettings.Center then
@@ -2775,7 +2769,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end)
 
 			local function RunDropdownCallback()
-				local Success, Response = pcall(function()
+				local Success, Response: any = pcall(function()
 					if not DropdownSettings.Callback then
 						return
 					end
@@ -2974,7 +2968,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 				--SaveConfiguration()
 			end
 
-			function DropdownSettings:Refresh(optionsTable: table) -- updates a dropdown with new options from optionsTable
+			function DropdownSettings:Refresh(optionsTable: {[any]: any}) -- updates a dropdown with new options from optionsTable
 				DropdownSettings.Options = optionsTable
 
 				for _, option in Dropdown.List:GetChildren() do
@@ -3019,7 +3013,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 
 		-- Keybind
-		function Tab:CreateKeybind(KeybindSettings)
+		function Tab:CreateKeybind(KeybindSettings: {[string]: any})
 			local CheckingForKey = false
 			local Keybind = Elements.Template.Keybind:Clone()
 			Keybind.Name = KeybindSettings.Name
@@ -3064,10 +3058,11 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end)
 
 			UserInputService.InputBegan:Connect(function(input, processed)
+				local SplitMessage = string.split(tostring(input.KeyCode), ".")
+				local NewKeyNoEnum = SplitMessage[3]
+				
 				if CheckingForKey then
 					if input.KeyCode ~= Enum.KeyCode.Unknown then
-						local SplitMessage = string.split(tostring(input.KeyCode), ".")
-						local NewKeyNoEnum = SplitMessage[3]
 						Keybind.KeybindFrame.KeybindBox.Text = tostring(NewKeyNoEnum)
 						KeybindSettings.CurrentKeybind = tostring(NewKeyNoEnum)
 						Keybind.KeybindFrame.KeybindBox:ReleaseFocus()
@@ -3207,7 +3202,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end)
 
 			local function RunToggleCallback()
-				local Success, Response = pcall(function()
+				local Success, Response: any = pcall(function()
 					if RequiredValue == false or (typeof(RequiredValue) == "string" and not getfenv()[RequiredValue]) then
 						return
 					end
@@ -3338,7 +3333,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 
 		-- Slider
-		function Tab:CreateSlider(SliderSettings)
+		function Tab:CreateSlider(SliderSettings: {[any]: any})
 			local SLDragging = false
 			local Slider = Elements.Template.Slider:Clone()
 			Slider.Name = SliderSettings.Name
@@ -3396,7 +3391,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			end)
 
 			local function RunSliderCallback(NewValue)
-				local Success, Response = pcall(function()
+				local Success, Response: any = pcall(function()
 					if not SliderSettings.Callback then
 						return
 					end
@@ -3580,7 +3575,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 	end
 
 	local success, result = pcall(function()
-		createSettings(Window)
+		createSettings(Window :: any)
 	end)
 
 	if not success then warn('Rayfield had an issue creating settings.') end
@@ -3683,7 +3678,7 @@ if shared.DashboardTab then
 		shared.DashboardTab:Switch()
 	end
 	
-	local Settings: ImageLabel = Topbar.Settings
+	local Settings: ImageButton = Topbar.Settings
 	
 	Settings.MouseButton1Click:Connect(Jump)
 	
@@ -3752,7 +3747,7 @@ function RayfieldLibrary:LoadConfiguration()
 		local notified
 		local loaded
 
-		local success, result = pcall(function()
+		local success, result: string? = pcall(function()
 			if useStudio and config then
 				loaded = LoadConfiguration(config)
 				return
