@@ -1,3 +1,4 @@
+--!strict
 local function SafeCloneRef(Object)
 	if typeof(Object) ~= 'Instance' then
 		warn('[Debug] Non-instance passed:', typeof(Object), tostring(Object));
@@ -27,7 +28,7 @@ local function SafeCloneRef(Object)
 	return Result;
 end
 
-local function getService(Name)
+local function getService(Name): any
 	local Service;
 	local Success, Error = pcall(function()
 
@@ -188,7 +189,7 @@ local function GetPromptLibrary()
 		prompt.Parent = GetUIParentObject()
 
 		-- Disable other instances of the prompt
-		for _, Interface in ipairs(GetUIParentObject:GetChildren()) do
+		for _, Interface in ipairs(GetUIParentObject():GetChildren()) do
 			if Interface.Name == prompt.Name and Interface ~= prompt then
 				Interface:Destroy()
 			end
@@ -748,7 +749,7 @@ Rayfield.Parent = GetUIParentObject()
 
 Rayfield:SetAttribute("UUID", math.random())
 
-for _, Interface in GetUIParentObject:GetChildren() do
+for _, Interface in GetUIParentObject():GetChildren() do
 	if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
 		Interface:Destroy()
 	end
@@ -1787,7 +1788,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			
 			KeyUI.Parent = GetUIParentObject()
 
-			for _, Interface in GetUIParentObject:GetChildren() do
+			for _, Interface in GetUIParentObject():GetChildren() do
 				if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
 					Interface:Destroy()
 				end
