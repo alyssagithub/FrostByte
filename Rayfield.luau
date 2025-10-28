@@ -45,7 +45,6 @@ local function getService(Name): any
 
 	if Cloned ~= Service then
 
-		print('[Debug] Successfully cloned service:', Name);
 	else
 
 		print('[Debug] Returned original service:', Name);
@@ -89,7 +88,7 @@ shared.RayfieldIdentifier = RayfieldIdentifier
 local function GetUIParentObject()
 	local CoreGui = game:GetService('CoreGui')
 	
-	local gethui = getfenv().gethui
+	local gethui = nil--getfenv().gethui
 	
 	if gethui then
 		return gethui()
@@ -150,8 +149,6 @@ local function GetPromptLibrary()
 		tweenService:Create(prompt.Policy.Actions.Primary.Title, TweenInfo.new(0.25, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextTransparency = 0.2}):Play()
 		tweenService:Create(prompt.Policy.Actions.Primary.Shadow, TweenInfo.new(0.25, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {ImageTransparency = 0.7}):Play()
 
-		--task.wait(5)
-
 		if not fin then
 			tweenService:Create(prompt.Policy.Actions.Secondary.Title, TweenInfo.new(0.25, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextTransparency = 0.6}):Play()
 			debounce = false
@@ -182,16 +179,16 @@ local function GetPromptLibrary()
 
 
 	function promptRet.create(title, description, primary, secondary, callback)
-		local prompt = useStudio and script.Parent:FindFirstChild('Prompt') or game:GetObjects("rbxassetid://97206084643256")[1]
+		local prompt = useStudio and script.Parent:FindFirstChild('WarningPrompt') or game:GetObjects("rbxassetid://76963332287827")[1]
 
-		prompt.Enabled = false
-		
+		prompt.Enabled = false	
 		prompt.Parent = GetUIParentObject()
 
 		-- Disable other instances of the prompt
-		for _, Interface in ipairs(GetUIParentObject():GetChildren()) do
+		for _, Interface in ipairs(prompt.Parent:GetChildren()) do
 			if Interface.Name == prompt.Name and Interface ~= prompt then
-				Interface:Destroy()
+				Interface.Enabled = false
+				Interface.Name = "Prompt-Old"
 			end
 		end
 
@@ -199,9 +196,11 @@ local function GetPromptLibrary()
 		prompt.Policy.Title.Text = title
 		prompt.Policy.Notice.Text = description
 		prompt.Policy.Actions.Primary.Title.Text = primary
-		prompt.Policy.Actions.Secondary.Title.Text = secondary
-		prompt.Policy.Actions.Secondary.Title.Visible = true
-		--print(prompt.Policy.Actions.Secondary.Title.Visible)
+		local SecondaryTitle: TextLabel = prompt.Policy.Actions.Secondary.Title
+		SecondaryTitle.Text = secondary
+		SecondaryTitle.Visible = true
+		SecondaryTitle.Position = UDim2.fromScale(0.5, 0.5)
+		SecondaryTitle.Size = UDim2.new(1, 0, 0, 16)
 
 		-- Handle the button clicks and trigger the callback
 		prompt.Policy.Actions.Primary.Interact.MouseButton1Click:Connect(function()
@@ -749,9 +748,10 @@ Rayfield.Parent = GetUIParentObject()
 
 Rayfield:SetAttribute("UUID", math.random())
 
-for _, Interface in GetUIParentObject():GetChildren() do
+for _, Interface: ScreenGui in GetUIParentObject():GetChildren() do
 	if Interface.Name == Rayfield.Name and Interface ~= Rayfield then
-		Interface:Destroy()
+		Interface.Name = "Rayfield-Old"
+		Interface.Enabled = false
 	end
 end
 
@@ -1554,13 +1554,13 @@ end
 
 function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 	if Rayfield:FindFirstChild('Loading') then
-		if shared.rayfieldCached then
-			Rayfield.Enabled = true
-			Rayfield.Loading.Visible = false
-		end
+		--if shared.rayfieldCached then
+			--Rayfield.Enabled = true
+			--Rayfield.Loading.Visible = false
+		--end
 	end
 
-	shared.rayfieldCached = true
+	--shared.rayfieldCached = true
 
 	local Success, Result = pcall(isfolder, RayfieldFolder)
 
@@ -1777,9 +1777,10 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 			
 			KeyUI.Parent = GetUIParentObject()
 
-			for _, Interface in GetUIParentObject():GetChildren() do
+			for _, Interface: ScreenGui in GetUIParentObject():GetChildren() do
 				if Interface.Name == KeyUI.Name and Interface ~= KeyUI then
-					Interface:Destroy()
+					Interface.Name = "Key-Old"
+					Interface.Enabled = false
 				end
 			end
 
@@ -1974,6 +1975,8 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 		end
 
 		TabButton.UIStroke.Color = SelectedTheme.TabStroke
+		
+		local ElementsUIPageLayout = Elements.UIPageLayout
 
 		if Elements.UIPageLayout.CurrentPage == TabPage then
 			TabButton.BackgroundColor3 = SelectedTheme.TabBackgroundSelected
@@ -2028,8 +2031,8 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 				end
 			end
 
-			if Elements.UIPageLayout.CurrentPage ~= TabPage then
-				Elements.UIPageLayout:JumpTo(TabPage)
+			if ElementsUIPageLayout.CurrentPage ~= TabPage then
+				ElementsUIPageLayout:JumpTo(TabPage)
 			end
 		end
 
@@ -3673,24 +3676,21 @@ Topbar.Search.MouseButton1Click:Connect(function()
 	end)
 end)
 
-if shared.DashboardTab then
+task.spawn(function()
+	repeat
+		task.wait()
+	until shared.DashboardTab
+	
 	local function Jump()
 		shared.DashboardTab:Switch()
 	end
-	
+
 	local Settings: ImageButton = Topbar.Settings
-	
+
 	Settings.MouseButton1Click:Connect(Jump)
 	
-	task.spawn(function()
-		repeat
-			task.wait()
-		until shared.DashboardTab
-		
-		Jump()
-	end)
-end
-
+	task.delay(0, Jump)
+end)
 
 Topbar.Hide.MouseButton1Click:Connect(function()
 	setVisibility(Hidden, not useMobileSizing)
