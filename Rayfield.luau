@@ -1956,7 +1956,6 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 			Elements.UIPageLayout.Animated = false
 			Elements.UIPageLayout:JumpTo(TabPage)
 			Elements.UIPageLayout.Animated = true
-			print("jumped to", TabPage)
 		end
 
 		TabButton.UIStroke.Color = SelectedTheme.TabStroke
@@ -1986,7 +1985,6 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 			TweenService:Create(TabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 0.5}):Play()
 		else
 			FirstTab = Name
-			print("firsttab:", FirstTab)
 			TabButton.BackgroundColor3 = SelectedTheme.TabBackgroundSelected
 			TabButton.Image.ImageColor3 = SelectedTheme.SelectedTabTextColor
 			TabButton.Title.TextColor3 = SelectedTheme.SelectedTabTextColor
