@@ -88,7 +88,7 @@ shared.RayfieldIdentifier = RayfieldIdentifier
 local function GetUIParentObject()
 	local CoreGui = game:GetService('CoreGui')
 	
-	local gethui = nil--getfenv().gethui
+	local gethui = nil
 	
 	if gethui then
 		return gethui()
@@ -1530,25 +1530,9 @@ local function updateSettings()
 end
 
 local function createSettings(window)
-	if not (writefile and isfile and readfile and isfolder and makefolder) and not useStudio then
-		if Topbar['Settings'] then Topbar.Settings.Visible = false end
-		Topbar['Search'].Position = UDim2.new(1, -75, 0.5, 0)
-		warn('Can\'t create settings as no file-saving functionality is available.')
-		return
-	end
-
 	local Tab = window:CreateTab('Dashboard', 0, true)
-	
 	shared.DashboardTab = Tab
-
-	if TabList['Dashboard'] then
-		TabList['Dashboard'].LayoutOrder = 1000
-	end
-
-	if Elements['Dashboard'] then
-		Elements['Dashboard'].LayoutOrder = 1000
-	end
-
+	
 	settingsCreated = true
 end
 
@@ -1916,7 +1900,7 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 	TabList.Template.Visible = false
 
 	-- Tab
-	local FirstTab = true
+	local FirstTab = false
 	local Window = {}
 	function Window:CreateTab(Name, Image, Ext)
 		local SDone = false
@@ -1968,10 +1952,11 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 		end
 
 		TabPage.Parent = Elements
-		if not FirstTab and not Ext then
+		if not FirstTab then
 			Elements.UIPageLayout.Animated = false
 			Elements.UIPageLayout:JumpTo(TabPage)
 			Elements.UIPageLayout.Animated = true
+			print("jumped to", TabPage)
 		end
 
 		TabButton.UIStroke.Color = SelectedTheme.TabStroke
@@ -1991,7 +1976,7 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 
 		-- Animate
 		task.wait(0.1)
-		if FirstTab or Ext then
+		if FirstTab then
 			TabButton.BackgroundColor3 = SelectedTheme.TabBackground
 			TabButton.Image.ImageColor3 = SelectedTheme.TabTextColor
 			TabButton.Title.TextColor3 = SelectedTheme.TabTextColor
@@ -1999,8 +1984,9 @@ function RayfieldLibrary:CreateWindow(Settings: {[string]: any})
 			TweenService:Create(TabButton.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0.2}):Play()
 			TweenService:Create(TabButton.Image, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {ImageTransparency = 0.2}):Play()
 			TweenService:Create(TabButton.UIStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {Transparency = 0.5}):Play()
-		elseif not Ext then
+		else
 			FirstTab = Name
+			print("firsttab:", FirstTab)
 			TabButton.BackgroundColor3 = SelectedTheme.TabBackgroundSelected
 			TabButton.Image.ImageColor3 = SelectedTheme.SelectedTabTextColor
 			TabButton.Title.TextColor3 = SelectedTheme.SelectedTabTextColor
@@ -3676,20 +3662,10 @@ Topbar.Search.MouseButton1Click:Connect(function()
 	end)
 end)
 
-task.spawn(function()
-	repeat
-		task.wait()
-	until shared.DashboardTab
-	
-	local function Jump()
-		shared.DashboardTab:Switch()
-	end
+local Settings: ImageButton = Topbar.Settings
 
-	local Settings: ImageButton = Topbar.Settings
-
-	Settings.MouseButton1Click:Connect(Jump)
-	
-	task.delay(0, Jump)
+Settings.MouseButton1Click:Connect(function()
+	shared.DashboardTab:Switch()
 end)
 
 Topbar.Hide.MouseButton1Click:Connect(function()
